@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Dice of Life</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Playfair+Display:wght@400;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Playfair Display', serif;
+            background-color: #0a0a0a;
+            color: #f0f0f0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Rose Sketch Background */
+        .rose-bg {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.1;
+        }
+        
+        .rose {
+            position: absolute;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 20Q55 0 70 10Q85 20 80 40Q75 60 50 65Q25 60 20 40Q15 20 30 10Q45 0 50 20Z" fill="none" stroke="white" stroke-width="0.5"/><path d="M50 30Q60 25 60 35Q60 45 50 50Q40 45 40 35Q40 25 50 30Z" fill="none" stroke="white" stroke-width="0.5"/></svg>');
+            background-repeat: no-repeat;
+            background-size: contain;
+            animation: float 40s linear infinite;
+            filter: drop-shadow(0 0 2px rgba(255,255,255,0.3));
+        }
+        
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) rotate(0deg) scale(0.8);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.1;
+            }
+            90% {
+                opacity: 0.1;
+            }
+            100% {
+                transform: translate(calc(100vw * var(--x)), calc(100vh * var(--y))) rotate(180deg) scale(1.2);
+                opacity: 0;
+            }
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 800px;
+            padding: 2rem;
+            background-color: rgba(20, 20, 20, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            border: 1px solid #ffffff;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #ffffff, #aaaaaa, #ffffff);
+            z-index: -1;
+            border-radius: 16px;
+            animation: borderGlow 3s linear infinite;
+            opacity: 0.5;
+            background-size: 400%;
+        }
+        
+        @keyframes borderGlow {
+            0% {
+                background-position: 0 0;
+            }
+            50% {
+                background-position: 400% 0;
+            }
+            100% {
+                background-position: 0 0;
+            }
+        }
+        
+        h1 {
+            font-family: 'Cinzel Decorative', cursive;
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #f0f0f0;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            font-size: 2.5rem;
+        }
+        
+        .welcome-message {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 1.2rem;
+            line-height: 1.6;
+        }
+        
+        .options {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        button {
+            padding: 0.8rem 1.5rem;
+            font-family: 'Playfair Display', serif;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            border: 1px solid #ffffff;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(255, 255, 255, 0.4);
+        }
+        
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: 0.5s;
+        }
+        
+        button:hover::before {
+            left: 100%;
+        }
+        
+        .game-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .dice-section {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 2rem;
+        }
+        
+        .dice-container, .result-container {
+            width: 48%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .dice {
+            width: 120px;
+            height: 120px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1s ease;
+            margin-bottom: 1.5rem;
+        }
+        
+        .dice.rolling {
+            animation: roll 1.5s ease-out;
+        }
+        
+        @keyframes roll {
+            0% { transform: rotateX(0) rotateY(0) rotateZ(0); }
+            100% { transform: rotateX(720deg) rotateY(360deg) rotateZ(360deg); }
+        }
+        
+        .dice-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(30, 30, 30, 0.9);
+            border: 2px solid #ffffff;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #f0f0f0;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+        
+        .dice-face::before {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: 5px;
+            bottom: 5px;
+            border: 1px solid #ffffff;
+            border-radius: 10px;
+            pointer-events: none;
+        }
+        
+        .dice-face-1 { transform: translateZ(60px); }
+        .dice-face-2 { transform: rotateY(180deg) translateZ(60px); }
+        .dice-face-3 { transform: rotateY(90deg) translateZ(60px); }
+        .dice-face-4 { transform: rotateY(-90deg) translateZ(60px); }
+        .dice-face-5 { transform: rotateX(90deg) translateZ(60px); }
+        .dice-face-6 { transform: rotateX(-90deg) translateZ(60px); }
+        
+        .result-display {
+            width: 120px;
+            height: 120px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            font-weight: bold;
+            background: rgba(30, 30, 30, 0.9);
+            border: 2px solid #ffffff;
+            border-radius: 15px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+        
+        .result-display::before {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: 5px;
+            bottom: 5px;
+            border: 1px solid #ffffff;
+            border-radius: 10px;
+            pointer-events: none;
+        }
+        
+        .life-message {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(40, 40, 40, 0.7);
+            border: 1px solid #ffffff;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 300px;
+            font-style: italic;
+            animation: fadeIn 1s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .roll-btn {
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+            border: 1px solid #ffffff;
+            color: #f0f0f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+        
+        .roll-btn:hover {
+            background: linear-gradient(45deg, #2a2a2a, #3a3a3a);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+        
+        .exit-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: #f0f0f0;
+            font-size: 1.5rem;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .typewriter {
+            overflow: hidden;
+            border-right: 2px solid #ffffff;
+            white-space: nowrap;
+            margin: 0 auto;
+            letter-spacing: 2px;
+            animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+        }
+        
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+        
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: #ffffff }
+        }
+    </style>
+</head>
+<body>
+    <!-- Rose Sketch Background Container -->
+    <div class="rose-bg" id="roseBg"></div>
+    
+    <div class="container">
+        <h1>Custom Dice of Life</h1>
+        
+        <div class="welcome-message" id="welcomeMessage">
+            <p>Hello user, hope you are doing well.</p>
+            <p>Here is a Custom Dice for Life. Would you like to play?</p>
+        </div>
+        
+        <div class="options" id="options">
+            <button id="yesBtn">Yes</button>
+            <button id="noBtn">No</button>
+        </div>
+        
+        <div class="game-container" id="gameContainer">
+            <div class="dice-section">
+                <div class="dice-container">
+                    <div class="dice" id="dice">
+                        <div class="dice-face dice-face-1">1</div>
+                        <div class="dice-face dice-face-2">2</div>
+                        <div class="dice-face dice-face-3">3</div>
+                        <div class="dice-face dice-face-4">4</div>
+                        <div class="dice-face dice-face-5">5</div>
+                        <div class="dice-face dice-face-6">6</div>
+                    </div>
+                    <button class="roll-btn" id="rollBtn">Roll the Dice</button>
+                </div>
+                
+                <div class="result-container">
+                    <div class="result-display" id="resultDisplay"></div>
+                    <p>Your result:</p>
+                    <div class="life-message" id="lifeMessage"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="no-response" id="noResponse" style="display: none;">
+            <div class="welcome-message">
+                <p>Hope you are doing well. Everything will be fine &lt;3</p>
+            </div>
+            <div class="options">
+                <button id="restartBtn">Restart</button>
+                <button id="exitBtn">Exit</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="exit-screen" id="exitScreen">
+        <div class="typewriter">Thank you for visiting. Wishing you all the best on your journey.</div>
+    </div>
+    
+    <script>
+        // Create sketched rose background
+        function createRoseBackground() {
+            const roseBg = document.getElementById('roseBg');
+            const roseCount = 12;
+            
+            for (let i = 0; i < roseCount; i++) {
+                const rose = document.createElement('div');
+                rose.className = 'rose';
+                
+                // Random position and animation direction
+                const startX = Math.random();
+                const startY = Math.random();
+                const endX = Math.random();
+                const endY = Math.random();
+                
+                rose.style.left = `${startX * 100}%`;
+                rose.style.top = `${startY * 100}%`;
+                rose.style.setProperty('--x', endX - startX);
+                rose.style.setProperty('--y', endY - startY);
+                
+                // Random size
+                const size = 10 + Math.random() * 30;
+                rose.style.width = `${size}vmin`;
+                rose.style.height = `${size}vmin`;
+                
+                // Random animation duration
+                const duration = 30 + Math.random() * 50;
+                rose.style.animationDuration = `${duration}s`;
+                
+                // Random delay
+                rose.style.animationDelay = `${Math.random() * 20}s`;
+                
+                roseBg.appendChild(rose);
+            }
+        }
+        
+        // Call the function when the page loads
+        window.addEventListener('load', createRoseBackground);
+        
+        const messages = [
+            "Go and sit with your mom",
+            "Take a deep breath",
+            "Go for a walk/read a book",
+            "Try a mehendi design",
+            "Compliment yourself and write one beautiful line about yourself",
+            "Listen to your favorite song"
+        ];
+        
+        const yesBtn = document.getElementById('yesBtn');
+        const noBtn = document.getElementById('noBtn');
+        const gameContainer = document.getElementById('gameContainer');
+        const noResponse = document.getElementById('noResponse');
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        const options = document.getElementById('options');
+        const rollBtn = document.getElementById('rollBtn');
+        const dice = document.getElementById('dice');
+        const resultDisplay = document.getElementById('resultDisplay');
+        const lifeMessage = document.getElementById('lifeMessage');
+        const restartBtn = document.getElementById('restartBtn');
+        const exitBtn = document.getElementById('exitBtn');
+        const exitScreen = document.getElementById('exitScreen');
+        
+        yesBtn.addEventListener('click', () => {
+            welcomeMessage.style.display = 'none';
+            options.style.display = 'none';
+            gameContainer.style.display = 'flex';
+        });
+        
+        noBtn.addEventListener('click', () => {
+            welcomeMessage.style.display = 'none';
+            options.style.display = 'none';
+            noResponse.style.display = 'block';
+        });
+        
+        rollBtn.addEventListener('click', rollDice);
+        restartBtn.addEventListener('click', restartGame);
+        exitBtn.addEventListener('click', showExitScreen);
+        
+        function rollDice() {
+            // Disable button during animation
+            rollBtn.disabled = true;
+            
+            // Clear previous result and message
+            resultDisplay.textContent = '';
+            lifeMessage.textContent = '';
+            
+            // Add rolling animation
+            dice.classList.add('rolling');
+            
+            // After animation completes
+            setTimeout(() => {
+                // Remove rolling animation
+                dice.classList.remove('rolling');
+                
+                // Generate random number
+                const randomNumber = Math.floor(Math.random() * 6) + 1;
+                
+                // Display the number
+                resultDisplay.textContent = randomNumber;
+                
+                // Get and display corresponding message
+                const message = messages[randomNumber - 1];
+                lifeMessage.textContent = message;
+                
+                // Re-enable button
+                rollBtn.disabled = false;
+            }, 1500);
+        }
+        
+        function restartGame() {
+            noResponse.style.display = 'none';
+            welcomeMessage.style.display = 'block';
+            options.style.display = 'flex';
+            gameContainer.style.display = 'none';
+            resultDisplay.textContent = '';
+            lifeMessage.textContent = '';
+        }
+        
+        function showExitScreen() {
+            document.querySelector('.container').style.display = 'none';
+            exitScreen.style.display = 'flex';
+        }
+    </script>
+</body>
+</html>
